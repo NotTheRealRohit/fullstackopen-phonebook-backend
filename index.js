@@ -39,6 +39,7 @@ morgan.token("body",(req,res)=>{
 
 app.use(express.json());
 app.use(cors());
+app.use(express.static('dist'));
 //Logging of format example :- POST /api/persons 201 54 - 2.601 ms {"name":"Dana Abramov","number":"040-123456"}
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
 
