@@ -15,34 +15,34 @@ mongoose.set('strictQuery',false)
 mongoose.connect(url)
 
 const personSchema = mongoose.Schema({
-    name: String,
-    number: String
+  name: String,
+  number: String
 })
 
-const Person = mongoose.model("Person",personSchema);
+const Person = mongoose.model('Person',personSchema)
 
-if(process.argv.length == 5){
-    const personName = process.argv[3];
-    const personNumber = process.argv[4];
+if(process.argv.length === 5){
+  const personName = process.argv[3]
+  const personNumber = process.argv[4]
 
-    const person = new Person({
-        name: personName,
-        number: personNumber
-    });
+  const person = new Person({
+    name: personName,
+    number: personNumber
+  })
 
-    person.save().then(result=>{
-        console.log("Added",result.name,"with number:", result.number,"to phonebook");
-        mongoose.connection.close();
-    })
+  person.save().then(result => {
+    console.log('Added',result.name,'with number:', result.number,'to phonebook')
+    mongoose.connection.close()
+  })
 }
 
 if(process.argv.length === 3){
-    Person.find({}).then(result=>{
-        result.forEach(element => {
-            console.log(element.name,element.number);
-        });
-        mongoose.connection.close();
+  Person.find({}).then(result => {
+    result.forEach(element => {
+      console.log(element.name,element.number)
     })
+    mongoose.connection.close()
+  })
 }
 
 
