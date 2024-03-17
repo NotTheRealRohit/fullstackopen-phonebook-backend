@@ -1,18 +1,22 @@
-let data= require('./persons.json')
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const app = express();
+const Person = require('./model/person');
 
-const generateId =()=>{
-    const min=1;
-    const max=1000;
-    let id =1;
-    while(data.some(person=>person.id === id)){
-        id = Math.floor(Math.random()*(max-min+1))+min;
+const errorHandler = (error,req,res,next)=>{
+    console.error(error);
+    if(error.name === "CastError"){
+        return res.status(400).json({
+            message:"malformatted id"
+        });
     }
-    return id;
+
+    next(error);
 }
+
+
 
 // const requestLogger = (req,res,next)=>{
 //     console.log("method::",req.method);
@@ -33,7 +37,6 @@ const generateId =()=>{
 morgan.token("body",(req,res)=>{
     const body = req.body;
     body.param = req.params;
-    console.log(body);
     return JSON.stringify(body)
 })
 
@@ -43,49 +46,46 @@ app.use(express.static('dist'));
 //Logging of format example :- POST /api/persons 201 54 - 2.601 ms {"name":"Dana Abramov","number":"040-123456"}
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
 
-app.get('/',(req,res)=>{
-    res.json("Hello world")
-})
-
 app.get('/api/persons',(req,res)=>{
-    res.json(data)
+    Person.find({}).then(person=>{
+        console.log(person);
+        res.json(person);
+    })
 })
 
 app.get('/info',(req,res)=>{
-    const info = `
-    <p>Phone book has info for ${data.length} people</p>
-    <p>${new Date()}</p>
-    ` 
-    res.send(info);
+    Person.find({}).then(data=>{
+        const info = `
+        <p>Phone book has info for ${data.length} people</p>
+        <p>${new Date()}</p>
+        ` 
+        res.send(info);
+    })
 })
 
-app.get('/api/persons/:id',(req,res)=>{
-    const reqId = Number(req.params.id);
-    const person = data.find(person=>person.id === reqId);
-    
-    if(!person){
-        res.statusMessage= "Person not found";
-        res.status(404).end();
-    }else{
-        res.json(person)
-    }
+app.get('/api/persons/:id',(req,res,next)=>{
+    const reqId = (req.params.id);
+    Person.findById(reqId).then(person=>{
+        if(person)
+            res.json(person);
+        else
+            res.status(404).end();
+    }).catch(error=>{
+        next(error);
+    })
 })
 
-app.delete('/api/persons/:id',(req,res)=>{
-    const reqId = Number(req.params.id);
-    const person = data.find(person=>person.id === reqId);
-    
-    if(person){
-        data = data.filter(person=> person.id !== reqId);
-    }
+app.delete('/api/persons/:id',(req,res,next)=>{
+    const reqId = req.params.id;
 
-    res.status(204).end();
+    Person.findByIdAndDelete(reqId).then(result=>{
+        res.status(204).end();
+    }).catch(err=> next(err));
     
 })
 
-app.post("/api/persons",(req,res)=>{
+app.post("/api/persons",(req,res,next)=>{
     const body = req.body;
-    console.log(body);
 
     if(!body || !body.name || !body.number){
         return res.status(400).json({
@@ -93,23 +93,32 @@ app.post("/api/persons",(req,res)=>{
         })
     }
 
-    if(data.some(person=> person.name === body.name)){
-        return res.status(400).json({
-            error:"name must be unique"
-        })
-    }
-
-    const newPerson = {
-        id: generateId(),
+   
+    const newPerson =new Person({
         name: body.name,
         number: body.number
-    }
+    });
 
-    data = data.concat(newPerson);
-    res.status(201).json(newPerson);
+    newPerson.save().then(updatedPerson=>{
+        res.status(201).json(updatedPerson);
+    }).catch(err=> next(err));
+        
 })
 
+app.put('/api/persons/:id',(req,res,next)=>{
+    const id = req.params.id;
+    const body = req.body;
+    const updatedPerson={
+        name:body.name,
+        number:body.number,
+    }
+    
+    Person.findByIdAndUpdate(id,updatedPerson,{new:true}).then(result=>{
+        res.json(result);
+    }).catch(error=>next(error));
+})
 
+app.use(errorHandler);
 
 const PORT = process.env.PORT|| 3001;
 
