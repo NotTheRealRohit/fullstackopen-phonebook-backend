@@ -11,6 +11,8 @@ const errorHandler = (error,req,res,next)=>{
         return res.status(400).json({
             message:"malformatted id"
         });
+    }else if(error.name === "ValidationError"){
+        return res.status(400).json({ error: error.message })
     }
 
     next(error);
@@ -113,7 +115,7 @@ app.put('/api/persons/:id',(req,res,next)=>{
         number:body.number,
     }
     
-    Person.findByIdAndUpdate(id,updatedPerson,{new:true}).then(result=>{
+    Person.findByIdAndUpdate(id,updatedPerson,{new:true, runValidators: true, context: 'query'}).then(result=>{
         res.json(result);
     }).catch(error=>next(error));
 })
